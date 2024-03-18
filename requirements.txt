@@ -1,3 +1,6 @@
 unstructured
 pdf2image
 pdfminer.six
+pikepdf
+pillow_heif
+pypdf
