@@ -2,32 +2,51 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { Typography } from '@mui/material'
+
+
+
+function BookReader(){
+  return <>
+    <div style={{height:'100%', width:'50%'}} className='basic-border'>
+      <div>
+        <Typography variant='h6' className='frame-title'>Book</Typography>
+      </div>
+      
+    </div>
+  </>
+}
+
+function GeneralSummary(){
+  return <>
+    <div style={{height:'50%'}} className='basic-border'>
+      <Typography variant='h6' className='frame-title'>General Summary</Typography>
+    </div>
+  </>
+}
+
+function PageSummary(){
+  return <>
+    <div style={{height:'50%'}} className='basic-border'>
+      <Typography variant='h6' className='frame-title'>Page Summary</Typography>
+    </div>
+  </>
+}
+
+
 
 function App() {
-  const [count, setCount] = useState(0)
+  
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className='App' style={{display:'flex', height:'100%'}}>
+        <BookReader />
+        <div style={{display:'flex', width:'50%', flexDirection:'column'}}>
+          <GeneralSummary />
+          <PageSummary />
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
