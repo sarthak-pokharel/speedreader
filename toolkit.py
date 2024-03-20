@@ -7,17 +7,20 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-
+from langchain.output_parsers import OutputFixingParser
 
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 from langchain.output_parsers import PydanticOutputParser
 from typing import List
 
+import uuid
 
 import dotenv
 dotenv.load_dotenv()
 
 
+def genHash():
+    return uuid.uuid4().hex
 
 
 
@@ -31,6 +34,7 @@ def load_pdf(hash, cache=True):
     if os.path.isfile(pklfn) and cache:
         pages = pickle.load(open(pklfn, 'rb'))
         return pages
+    print("cache doesnt exist")
     fname = load_pdf_name(hash)
     elements = partition(fname)
     pages = list(range(elements[-1].metadata.page_number))
@@ -89,6 +93,15 @@ def load_book(hash_value):
     return [book_name,overlapped]
 
 
+def uploadBook():
+    pass
+
+def register_book(fname):
+    book_hash = genHash()
+    resources = json.load(open('./resources/res.json'))
+    resources.append(dict(filename=fname, hash=book_hash))
+    open('./resources/res.json', 'w').write(json.dumps(resources))
+    return book_hash
 
 
 
@@ -99,18 +112,29 @@ class PageSummary(BaseModel):
     precontext: str = Field(description="General Summary of the the book to use as context to provide summary for future pages. Its value is basically half the weight of summary of previous precontext added with the short summary of this page, but its not too long, since its just a summary to provide context. And if the precontext is non existent, just summarize the summary of current page's summary")
     pass
 parser = PydanticOutputParser(pydantic_object=PageSummary)
-
+new_parser = OutputFixingParser.from_llm(parser=parser, llm=model)
 
 precontext_template = PromptTemplate(
     template="""You're a content summarizer bot. From a book/pdf, Summarize the following one page content in bullet points: 
     
+    ```content
+    
     {content}
 
+    ```
+
     The context of the pdf till now is following, just to have an idea of what above content might mean:
+    ```content
+
     {precontext}
+
+    ```
 
     Output Format Instruction:
     {format_instructions}
+
+
+    make sure your response is in given format.
     
     """,
     input_variables=["content", "precontext"],
@@ -121,11 +145,17 @@ precontext_template = PromptTemplate(
 template = PromptTemplate(
     template="""You're a content summarizer bot. From a book/pdf, Summarize the following one page content in bullet points: 
     
+    ```content
+    
     {content}
 
+    ```
     Output Format Instruction:
     {format_instructions}
     
+
+    make sure your response is in given format.
+
     """,
     input_variables=["content"],
     partial_variables={"format_instructions": parser.get_format_instructions()}
@@ -133,9 +163,9 @@ template = PromptTemplate(
 
 
 
-default_summarize_chain = template | model | parser
+default_summarize_chain = template | model | new_parser
 
-precontext_summarize_chain = precontext_template | model | parser
+precontext_summarize_chain = precontext_template | model | new_parser
 
 
 def summarize(txt, gen_summary=""):

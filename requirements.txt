@@ -5,3 +5,4 @@ pikepdf
 pillow_heif
 pypdf
 orjson
+_pillow_heif
