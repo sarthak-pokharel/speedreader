@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import React, { Fragment, useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import { Button, CircularProgress, IconButton, List, ListItem, Typography } from '@mui/material'
+import { Button, CircularProgress, Divider, IconButton, List, ListItem, Typography } from '@mui/material'
 import axios from 'axios'
 import { ChevronLeft, ChevronRight, HourglassTop, RecyclingRounded, RestartAlt, Sync } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
@@ -16,9 +16,9 @@ async function fetchBook(hash) {
     return res.data;
 }
 
-function BookReader({ bookBreadth, bookname, pages, pageIndex, setPageIndex, triggerResetPageSummary }) {
+function BookReader({ bookBreadth, bookname, pages, pageIndex, setPageIndex, triggerResetPageSummary,summaryLoadStatus }) {
     let summaryMaker = function () {
-        triggerResetPageSummary(Math.random())
+        triggerResetPageSummary(pageIndex)
     };
     let changPageIndx = (k) => {
         setPageIndex(v => v + k)
@@ -52,7 +52,7 @@ function BookReader({ bookBreadth, bookname, pages, pageIndex, setPageIndex, tri
                     <IconButton disabled={bookpagesLen == pageIndex} onClick={() => changPageIndx(1)}><ChevronRight /></IconButton>
                 </div>
                 <div style={{ width: '45%', display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button variant='outlined' onClick={summaryMaker}>SUMMARIZE</Button>
+                    <Button disabled={summaryLoadStatus=="loading"} variant='outlined' onClick={summaryMaker}>SUMMARIZE</Button>
                 </div>
             </div>
         </div>
@@ -77,7 +77,7 @@ let loadStatusIcons = {
     'loading': <HourglassTop />,
     'loaded': <Sync />
 }
-function PageSummary({ pageSummary, triggerResetPageSummary, summaryLoadStatus, setSummaryLoadStatus }) {
+function PageSummary({ pageSummary, triggerResetPageSummary, summaryLoadStatus,pageIndex, setSummaryLoadStatus }) {
     let isLoading = summaryLoadStatus == 'loading';
     return <>
         <div style={{ height: '70%', overflowY: 'auto' }} className='basic-border'>
@@ -91,7 +91,7 @@ function PageSummary({ pageSummary, triggerResetPageSummary, summaryLoadStatus, 
                             borderColor: isLoading ? "#777" : "#2196f3",
                             color: isLoading ? "#777" : "#2196f3",
                         }}
-                        onClick={() => triggerResetPageSummary(Math.random())}
+                        onClick={() => triggerResetPageSummary(pageIndex)}
                         disabled={summaryLoadStatus == 'loading'}
                     >
                         {loadStatusIcons[summaryLoadStatus]}
@@ -99,8 +99,21 @@ function PageSummary({ pageSummary, triggerResetPageSummary, summaryLoadStatus, 
                 </Typography>
             </div>
             <div className='mauto90' style={{ whiteSpace: 'pre-line' }}>
-                <List sx={{ listStyleType: 'lower-roman' }}>
-                    {pageSummary.map((v, i) => <ListItem sx={{ display: 'list-item' }} key={i}>{v}</ListItem>)}
+                <List>
+                    {pageSummary
+                        .map((v, i) => <Fragment key={i}>
+                        <ListItem sx={{ 
+                            cursor:'default',
+                            marginTop: 1,
+                            marginBottom: 1,
+                            "&:hover":{
+                                background: '#0001'
+                            },
+                            display: 'list-item'
+                         }} key={i}>{v}</ListItem>
+                        {i!=pageSummary.length-1?<Divider />:""}
+                        </Fragment>)
+                        }
                 </List>
             </div>
         </div>
@@ -130,10 +143,14 @@ function Book(props, v) {
     let loadSummaryForPage = async id => {
         
 
-        let sum = await axios.post('http://127.0.0.1:5000/summarize_text', { content: bookData[id], precontext });
-        pageIndexCache[id] = [sum.data.result.summary];
-        setPageIndexCache({...pageIndexCache});
+        try {
+            let sum = await axios.post('http://127.0.0.1:5000/summarize_text', { content: bookData[id], precontext });
+        // pageIndexCache[id] = [sum.data.result.summary];
+        // setPageIndexCache({...pageIndexCache});
         return [sum.data.result.summary, sum.data.result.precontext];
+        }catch(err){
+            return [["Couldn't load summary, Server Error"], precontext];
+        }
 
     }
 
@@ -147,46 +164,24 @@ function Book(props, v) {
         })()
     }, []);
 
-    let triggerResetPageSummary = async function () {
-        setSummaryLoadStatus('loading');
-        setPageSummary([]);
+    let triggerResetPageSummary = async function (pid) {
         console.log('loading');
-        let prom = loadSummaryForPage(currentPageIndex);
-        pageIndexCache[currentPageIndex] = prom;
+        let prom = loadSummaryForPage(pid);
+        pageIndexCache[pid] = prom;
         setPageIndexCache({...pageIndexCache})
         let [exp, precontext]= await prom;
 
         // setPageSummary(summary);
         setPrecontext(precontext);
-        setSummaryLoadStatus('loaded');
+        // setSummaryLoadStatus('loaded');
     };
 
     useEffect(() => {
-        (async function () {
+        let cpi = currentPageIndex;
+        (async function (cpi) {
             setPageSummary([]);
             setSummaryLoadStatus('loading');
-            if (currentPageIndex in pageIndexCache) {
-                if (pageIndexCache[currentPageIndex].constructor.name == "Promise") {
-                    let resp = await pageIndexCache[currentPageIndex];
-                    setPageSummary(resp[0]);
-                    setSummaryLoadStatus('loaded')
-                    return;
-                }
-                setPageSummary(pageIndexCache[currentPageIndex][0]);
-                setSummaryLoadStatus('loaded');
-            } else {
-                console.log('nopage');
-                setSummaryLoadStatus('loaded');
-            }
-        })();
-    }, [currentPageIndex]);
-
-    useEffect(()=>{
-        let cpi = currentPageIndex;
-        (async function(){
             if (cpi in pageIndexCache) {
-                setSummaryLoadStatus('loading');
-                setPageSummary([]);
                 if (pageIndexCache[cpi].constructor.name == "Promise") {
                     let resp = await pageIndexCache[cpi];
                     setPageSummary(resp[0]);
@@ -195,19 +190,44 @@ function Book(props, v) {
                 }
                 setPageSummary(pageIndexCache[cpi][0]);
                 setSummaryLoadStatus('loaded');
-            }else {
-                setPageSummary([]);
-                setSummaryLoadStatus("loaded");
+                return;
             }
-        })();
+            console.log('nopage', cpi, pageIndexCache[cpi]);
+            setSummaryLoadStatus('loaded');
+        })(cpi);
+    }, [currentPageIndex]);
+
+    useEffect(()=>{
+        let cpi = currentPageIndex;
+        (async function(cpi){
+            setSummaryLoadStatus('loading');
+            setPageSummary([]);
+            if (cpi in pageIndexCache) {
+                if (pageIndexCache[cpi].constructor.name == "Promise") {
+                    let resp = await pageIndexCache[cpi];
+                    pageIndexCache[cpi] = resp;
+                    setPageIndexCache({...pageIndexCache});
+                    // setPageSummary(resp[0]);
+                    // console.log('hrer')
+                    // setSummaryLoadStatus('loaded')
+                    return;
+                }
+                setPageSummary(pageIndexCache[cpi][0]);
+                setSummaryLoadStatus('loaded');
+                return;
+            }
+            setPageSummary([]);
+            setSummaryLoadStatus("loaded");
+        })(cpi);
     }, [pageIndexCache]);
 
     return (
         <>
             <div className='App' style={{ display: 'flex', height: '100%' }}>
-                <BookReader bookBreadth={bookBreadth} bookname={bookName} pages={bookData} pageIndex={currentPageIndex} setPageIndex={setCurrentPageIndex} triggerResetPageSummary={triggerResetPageSummary} />
+                <BookReader summaryLoadStatus={summaryLoadStatus} bookBreadth={bookBreadth} bookname={bookName} pages={bookData} pageIndex={currentPageIndex} setPageIndex={setCurrentPageIndex} triggerResetPageSummary={triggerResetPageSummary} />
                 <div style={{ display: 'flex', width: (100 - bookBreadth) + '%', flexDirection: 'column' }}>
                     <PageSummary
+                        pageIndex={currentPageIndex}
                         pageSummary={pageSummary}
                         triggerResetPageSummary={triggerResetPageSummary}
                         summaryLoadStatus={summaryLoadStatus}

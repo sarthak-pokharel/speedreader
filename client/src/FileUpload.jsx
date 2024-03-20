@@ -50,7 +50,7 @@ const FileUpload = () => {
             <br />
             <br />
             <br />
-            <div style={{ width: "70%", padding: "4%", margin: 'auto', background: '#fff', textAlign: 'center' }}>
+            <div style={{ width: "70%", maxWidth:500, padding: "4%", margin: 'auto', background: '#fff', textAlign: 'center' }}>
                 <div>
                     <Button variant="contained" component="label">
                         Upload File
