@@ -4,3 +4,4 @@ pdfminer.six
 pikepdf
 pillow_heif
 pypdf
+orjson

@@ -6,3 +6,11 @@
     font-weight: bold !important;
     text-decoration: underline;
 }
+
+.prechunk, .pstchunk {
+    color: #f44336;
+}
+.mauto90 {
+    width: 90%;
+    margin: auto;
+}
