@@ -1,5 +1,7 @@
 ### SpeedRead: Revolutionizing Book Consumption
 
+![](./images/speedreader.gif)
+
 > [!WARNING]
 > Project Under development and undocumented
 
@@ -17,5 +19,3 @@ With SpeedRead, you'll never miss a beat. Whether you're a voracious reader, a b
 Prepare to be captivated, challenged, and ultimately, transformed. Welcome to the future of reading – welcome to SpeedRead.
 
 
-
-![](./images/speedreader.gif)
