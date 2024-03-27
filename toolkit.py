@@ -104,65 +104,56 @@ def register_book(fname):
 
 model = ChatOpenAI(temperature=0)
 
+output_summary_list_desription = "Summary of given page content as a list of string, make each summary descriptive and precise"
+outout_precontext_description = "General Summary of the the book to use as context to provide summary for future pages. Its value is basically half the weight of summary of previous precontext added with the short summary of this page, but its not too long, since its just a summary to provide context. And if the precontext is non existent, just summarize the summary of current page's summary"
+
+precontext_template_str = """You're a content summarizer bot. From a book/pdf, Summarize the following one page content in bullet points:     
+```content
+{content}
+```
+The context of the pdf till now is following, just to have an idea of what above content might mean:
+```content
+{precontext}
+```
+Output Format Instruction:
+{format_instructions}
+make sure your response is in given format.
+"""
+
+
+default_template_str = """You're a content summarizer bot. From a book/pdf, Summarize the following one page content in bullet points:     
+```content
+{content}
+```
+Output Format Instruction:
+{format_instructions}
+make sure your response is in given format.
+"""
+
 class PageSummary(BaseModel):
-    summary:List[str] = Field(description="Summary of given page content as a list of string, make each summary descriptive and precise")
-    precontext: str = Field(description="General Summary of the the book to use as context to provide summary for future pages. Its value is basically half the weight of summary of previous precontext added with the short summary of this page, but its not too long, since its just a summary to provide context. And if the precontext is non existent, just summarize the summary of current page's summary")
+    summary:List[str] = Field(description=output_summary_list_desription)
+    precontext: str = Field(description=outout_precontext_description)
     pass
-parser = PydanticOutputParser(pydantic_object=PageSummary)
-new_parser = OutputFixingParser.from_llm(parser=parser, llm=model)
+
+_parser = PydanticOutputParser(pydantic_object=PageSummary)
+parser = OutputFixingParser.from_llm(parser=_parser, llm=model)
 
 precontext_template = PromptTemplate(
-    template="""You're a content summarizer bot. From a book/pdf, Summarize the following one page content in bullet points: 
-    
-    ```content
-    
-    {content}
-
-    ```
-
-    The context of the pdf till now is following, just to have an idea of what above content might mean:
-    ```content
-
-    {precontext}
-
-    ```
-
-    Output Format Instruction:
-    {format_instructions}
-
-
-    make sure your response is in given format.
-    
-    """,
+    template=precontext_template_str,
     input_variables=["content", "precontext"],
     partial_variables={"format_instructions": parser.get_format_instructions()}
 )
-
-
-template = PromptTemplate(
-    template="""You're a content summarizer bot. From a book/pdf, Summarize the following one page content in bullet points: 
-    
-    ```content
-    
-    {content}
-
-    ```
-    Output Format Instruction:
-    {format_instructions}
-    
-
-    make sure your response is in given format.
-
-    """,
+default_template = PromptTemplate(
+    template=default_template_str,
     input_variables=["content"],
     partial_variables={"format_instructions": parser.get_format_instructions()}
 )
 
 
 
-default_summarize_chain = template | model | new_parser
+default_summarize_chain = default_template | model | parser
 
-precontext_summarize_chain = precontext_template | model | new_parser
+precontext_summarize_chain = precontext_template | model | parser
 
 
 def summarize(txt, gen_summary=""):
