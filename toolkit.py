@@ -149,10 +149,7 @@ default_template = PromptTemplate(
     partial_variables={"format_instructions": parser.get_format_instructions()}
 )
 
-
-
 default_summarize_chain = default_template | model | parser
-
 precontext_summarize_chain = precontext_template | model | parser
 
 
