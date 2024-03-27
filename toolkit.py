@@ -93,9 +93,6 @@ def load_book(hash_value):
     return [book_name,overlapped]
 
 
-def uploadBook():
-    pass
-
 def register_book(fname):
     book_hash = genHash()
     resources = json.load(open('./resources/res.json'))
